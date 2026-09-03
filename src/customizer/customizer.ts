@@ -29,10 +29,13 @@ import twitchIcon from '../../assets/logos/twitch-mark.svg';
 import faceitMark from '../../assets/logos/faceit.svg';
 import csLogo from '../../assets/logos/cs2.png';
 import kapkitLogo from '../../assets/kapKit_logo.png';
-// Twitch-style chat badges for the preview.
-import subBadge from '../../assets/badges/sub.svg';
-import modBadge from '../../assets/badges/moderator.svg';
-import botBadge from '../../assets/badges/bot.svg';
+
+// Twitch-style chat badges for the preview are loaded at runtime from
+// public/badges/ (drop your own PNGs there — see public/badges/README.md).
+// A missing file is hidden rather than shown broken (see hideMissingBadges).
+const SUB_BADGE = '/badges/sub.png';
+const MOD_BADGE = '/badges/moderator.png';
+const BOT_BADGE = '/badges/bot.png';
 
 const REPO_URL = 'https://github.com/sidkapahi/kapkit-statcmd';
 const KOFI_URL = 'https://ko-fi.com/sidkapahi';
@@ -185,10 +188,10 @@ function renderStage(): string {
     <div class="chat-card">
       <div class="chat-lines">
         <div class="chat-line">
-          <div class="chat-body"><img class="chat-badge" src="${subBadge}" alt="Subscriber" /><span class="chat-name-green">Kapowhi</span><span class="chat-sep">: </span><span class="chat-text">!elo</span></div>
+          <div class="chat-body"><img class="chat-badge" src="${SUB_BADGE}" alt="Subscriber" /><span class="chat-name-green">Kapowhi</span><span class="chat-sep">: </span><span class="chat-text">!elo</span></div>
         </div>
         <div class="chat-line">
-          <div class="chat-body"><img class="chat-badge" src="${modBadge}" alt="Moderator" /><img class="chat-badge" src="${botBadge}" alt="Bot" /><span class="chat-name-blue">Fossabot</span><span class="chat-sep">: </span><span class="chat-text" id="chat-output"></span></div>
+          <div class="chat-body"><img class="chat-badge" src="${MOD_BADGE}" alt="Moderator" /><img class="chat-badge" src="${BOT_BADGE}" alt="Bot" /><span class="chat-name-blue">Fossabot</span><span class="chat-sep">: </span><span class="chat-text" id="chat-output"></span></div>
         </div>
       </div>
     </div>
@@ -482,10 +485,21 @@ function syncUrl(): void {
 // ---- Init -----------------------------------------------------------------
 
 renderTzList(TIMEZONES);
+hideMissingBadges();
 initAnalytics();
 mountCookieBanner();
 void resolveSteam();
 refresh();
+
+// Chat badges are optional PNGs in public/badges/. When one isn't present the
+// <img> would show a broken-image glyph, so drop it instead — the preview then
+// simply renders without that badge.
+function hideMissingBadges(): void {
+  for (const img of Array.from(document.querySelectorAll<HTMLImageElement>('.chat-badge'))) {
+    img.addEventListener('error', () => img.remove());
+    if (img.complete && img.naturalWidth === 0) img.remove();
+  }
+}
 
 // ---- Helpers --------------------------------------------------------------
 
