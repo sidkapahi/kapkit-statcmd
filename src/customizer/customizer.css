@@ -398,9 +398,10 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
 }
-.brand img { width: 32px; height: 32px; display: block; }
+/* Full kapKit lockup (mark + wordmark): keep its aspect ratio, cap the height. */
+.brand img { height: 32px; width: auto; max-width: 100%; display: block; }
 .brand span {
   font-family: 'Cascadia Mono', var(--font-mono);
   font-weight: 700;

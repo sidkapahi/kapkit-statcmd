@@ -149,7 +149,6 @@ function renderSidebar(): string {
     <div class="setup-footer">
       <div class="brand">
         <img src="${kapkitLogo}" alt="kapKit" />
-        <span>kapKit</span>
       </div>
       <div class="footer-links">
         <button type="button" id="open-privacy">Privacy Policy</button>
