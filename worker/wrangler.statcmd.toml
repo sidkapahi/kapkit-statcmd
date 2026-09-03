@@ -1,0 +1,24 @@
+# Cloudflare Worker config for the kapKit statcmd renderer.
+#
+# Deploy:   wrangler deploy --config wrangler.statcmd.toml
+# Secrets:  wrangler secret put FACEIT_API_KEY --config wrangler.statcmd.toml   (required for FACEIT/Today tokens)
+#           wrangler secret put STEAM_API_KEY  --config wrangler.statcmd.toml   (required for /id/ vanity resolution)
+#           wrangler secret put LEETIFY_KEY     --config wrangler.statcmd.toml   (optional — only raises rate limits)
+#
+# Routing: this Worker shares the statcmd.kapkit.ca domain with the GitHub Pages
+# site. Point DNS `statcmd.kapkit.ca` (CNAME → sidkapahi.github.io, PROXIED) at
+# Pages, then attach the two routes below so /v3 and /resolve hit the Worker and
+# everything else falls through to the site. Set these up in the Cloudflare
+# dashboard (Workers → your Worker → Triggers → Routes) or uncomment [[routes]].
+
+name = "statcmd"
+main = "statcmd.js"
+compatibility_date = "2024-11-01"
+
+# [[routes]]
+# pattern = "statcmd.kapkit.ca/v3*"
+# zone_name = "kapkit.ca"
+#
+# [[routes]]
+# pattern = "statcmd.kapkit.ca/resolve*"
+# zone_name = "kapkit.ca"

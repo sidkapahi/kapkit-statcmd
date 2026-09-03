@@ -1,0 +1,16 @@
+node_modules
+dist
+*.local
+.env
+.env.*
+!.env.example
+
+# Cloudflare Wrangler
+worker/.dev.vars
+worker/.wrangler
+.wrangler
+
+# Editor / OS
+.DS_Store
+.vscode
+*.log
