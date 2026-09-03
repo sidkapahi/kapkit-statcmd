@@ -451,21 +451,23 @@ body {
   gap: 23px;
 }
 .chat-line {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
   font-family: var(--font-chat);
   font-weight: 700;
   font-size: clamp(18px, 2.2vw, 31px);
   letter-spacing: -0.6px;
-  line-height: 1.15;
-}
-.chat-avatars { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-.chat-avatar {
-  width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
-  background: #2b2b2b;
+  line-height: 1.25;
 }
 .chat-body { min-width: 0; }
+/* Twitch-style chat badges: scale with the line text, sit on the baseline. */
+.chat-badge {
+  height: 0.8em;
+  width: 0.8em;
+  border-radius: 3px;
+  display: inline-block;
+  vertical-align: -0.12em;
+  margin-right: 0.28em;
+  flex-shrink: 0;
+}
 .chat-name-green { color: var(--chat-green); }
 .chat-name-blue { color: var(--chat-blue); }
 .chat-text { color: #fff; word-break: break-word; }

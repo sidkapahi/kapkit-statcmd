@@ -26,9 +26,13 @@ import {
 import ghIcon from '../../assets/logos/github.svg';
 import kofiIcon from '../../assets/logos/kofi.svg';
 import twitchIcon from '../../assets/logos/twitch-mark.svg';
-import faceitMark from '../../assets/faceit-mark.svg';
-import csLogo from '../../assets/cs-logo.png';
+import faceitMark from '../../assets/logos/faceit.svg';
+import csLogo from '../../assets/logos/cs2.png';
 import kapkitLogo from '../../assets/kapKit_logo.png';
+// Twitch-style chat badges for the preview.
+import subBadge from '../../assets/badges/sub.svg';
+import modBadge from '../../assets/badges/moderator.svg';
+import botBadge from '../../assets/badges/bot.svg';
 
 const REPO_URL = 'https://github.com/sidkapahi/kapkit-statcmd';
 const KOFI_URL = 'https://ko-fi.com/sidkapahi';
@@ -181,12 +185,10 @@ function renderStage(): string {
     <div class="chat-card">
       <div class="chat-lines">
         <div class="chat-line">
-          <div class="chat-avatars"><span class="chat-avatar" style="background:#123d24"></span></div>
-          <div class="chat-body"><span class="chat-name-green">Kapowhi</span><span class="chat-sep">: </span><span class="chat-text">!elo</span></div>
+          <div class="chat-body"><img class="chat-badge" src="${subBadge}" alt="Subscriber" /><span class="chat-name-green">Kapowhi</span><span class="chat-sep">: </span><span class="chat-text">!elo</span></div>
         </div>
         <div class="chat-line">
-          <div class="chat-avatars"><span class="chat-avatar" style="background:#1d3a55"></span></div>
-          <div class="chat-body"><span class="chat-name-blue">Fossabot</span><span class="chat-sep">: </span><span class="chat-text" id="chat-output"></span></div>
+          <div class="chat-body"><img class="chat-badge" src="${modBadge}" alt="Moderator" /><img class="chat-badge" src="${botBadge}" alt="Bot" /><span class="chat-name-blue">Fossabot</span><span class="chat-sep">: </span><span class="chat-text" id="chat-output"></span></div>
         </div>
       </div>
     </div>
