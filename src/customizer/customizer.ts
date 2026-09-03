@@ -38,8 +38,8 @@ const MOD_BADGE = '/badges/moderator.png';
 const BOT_BADGE = '/badges/bot.png';
 
 const REPO_URL = 'https://github.com/sidkapahi/kapkit-statcmd';
-const KOFI_URL = 'https://ko-fi.com/sidkapahi';
-const TWITCH_URL = 'https://twitch.tv/';
+const KOFI_URL = 'https://ko-fi.com/kapahi';
+const TWITCH_URL = 'https://twitch.tv/kapowhi';
 
 // Inline icons.
 const caretSvg =
