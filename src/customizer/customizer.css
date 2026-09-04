@@ -394,6 +394,9 @@ body {
   flex-direction: column;
   gap: 16px;
   align-items: center;
+  /* Hang at the bottom of the panel: absorb any extra column height above the
+     footer so it sits against the panel's bottom padding, per Figma. */
+  margin-top: auto;
 }
 .brand {
   display: flex;
