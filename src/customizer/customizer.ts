@@ -564,7 +564,7 @@ function renderModals(): string {
       <h3>Live preview &amp; the command</h3>
       <p>The preview and the generated command call the kapKit statcmd service (<a href="https://statcmd.kapkit.ca/" target="_blank" rel="noopener">statcmd.kapkit.ca</a>), which looks up public CS2 stats for the Steam ID you provide from <a href="https://leetify.com" target="_blank" rel="noopener">Leetify</a> (Premier) and the <a href="https://www.faceit.com" target="_blank" rel="noopener">FACEIT</a> Data API. Only your Steam ID, timezone, and template are sent — no personal account access is needed.</p>
       <h3>Analytics</h3>
-      <p>If analytics is enabled on this deployment, anonymous, aggregate usage counts are collected via <a href="https://posthog.com" target="_blank" rel="noopener">PostHog</a>, and only after you accept the cookie banner. No Steam ID or personal data is sent. You can decline and the tool works exactly the same.</p>
+      <p>If analytics is enabled on this deployment, anonymous, aggregate usage counts are collected via <a href="https://mixpanel.com" target="_blank" rel="noopener">Mixpanel</a>, and only after you accept the cookie banner. No Steam ID or personal data is sent. You can decline and the tool works exactly the same.</p>
       <p>Questions? Email <a class="modal-mail" href="mailto:hey@sidkapahi.com">hey@sidkapahi.com</a>.</p>
       <button type="button" class="modal-close">Close</button>
     </div>
