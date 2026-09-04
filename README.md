@@ -1,5 +1,9 @@
 <div align="center">
 
+<!-- Header image — drop your file at assets/header.png (or update the src below)
+     and it renders here. Delete this block if you'd rather not have one. -->
+<img src="assets/header.png" alt="kapKit — CS2 Stats Command" width="100%" />
+
 # kapKit — CS2 Stats Command
 
 Build a **CS2 FACEIT + Premier stats command** for your chat bot. Point it at a

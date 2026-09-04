@@ -454,23 +454,57 @@ function updatePreview(): void {
   }, 450);
 }
 
-// Substitutes tokens with illustrative sample values (used before a profile
-// resolves or when no Worker is configured). Mirrors the Worker's token set.
+// Illustrative sample values (used before a profile resolves or when no Worker
+// is configured). Mirrors the Worker's token set. Generated fresh once per page
+// load — see randomSamples — so the mockup never shows the same canned line
+// twice; kept stable for the life of the page so typing in OUTPUT doesn't
+// reshuffle the numbers on every keystroke.
+const SAMPLES: Record<string, string> = randomSamples();
+
 function samplePreview(view: string): string {
-  const samples: Record<string, string> = {
-    '{{rating}}': '15,000',
-    '{{rating.diff}}': '+250',
-    '{{elo}}': '1,059',
-    '{{lvl}}': '5',
-    '{{elo.diff}}': '+34',
+  return view.replace(/\{\{[a-zA-Z.]+\}\}/g, (t) => SAMPLES[t] ?? t).replace(/\r?\n/g, ' ');
+}
+
+// Random integer in [min, max] (inclusive).
+function randInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// A signed "diff today" string, e.g. "+250" / "-40" / "0".
+function signed(n: number): string {
+  return n > 0 ? `+${n.toLocaleString('en-US')}` : n.toLocaleString('en-US');
+}
+
+// The FACEIT skill level (1–10) an ELO falls into, using FACEIT's own
+// thresholds, so the sampled LEVEL and ELO always agree.
+function faceitLevel(elo: number): number {
+  const floors = [2001, 1751, 1531, 1351, 1201, 1051, 901, 751, 501];
+  const levels = [10, 9, 8, 7, 6, 5, 4, 3, 2];
+  for (let i = 0; i < floors.length; i++) {
+    if (elo >= floors[i]) return levels[i];
+  }
+  return 1;
+}
+
+// Builds a set of plausible, mutually-consistent sample stats. Called once at
+// load so every visitor sees a different — but sensible — preview line.
+function randomSamples(): Record<string, string> {
+  const elo = randInt(700, 2400);
+  const wins = randInt(0, 8);
+  const losses = randInt(0, 8);
+  return {
+    '{{rating}}': randInt(3, 30).toLocaleString('en-US') + ',' + String(randInt(0, 999)).padStart(3, '0'),
+    '{{rating.diff}}': signed(randInt(-8, 12) * 25),
+    '{{elo}}': elo.toLocaleString('en-US'),
+    '{{lvl}}': String(faceitLevel(elo)),
+    '{{elo.diff}}': signed(randInt(-6, 8) * 8),
     '{{url}}': 'faceit.com/en/players/Kapahiii',
-    '{{todays.wins}}': '4',
-    '{{todays.losses}}': '1',
-    '{{todays.avgKills}}': '22.4',
-    '{{todays.kd}}': '1.24',
-    '{{todays.hs}}': '48%',
+    '{{todays.wins}}': String(wins),
+    '{{todays.losses}}': String(losses),
+    '{{todays.avgKills}}': (randInt(120, 300) / 10).toFixed(1),
+    '{{todays.kd}}': (randInt(60, 190) / 100).toFixed(2),
+    '{{todays.hs}}': `${randInt(30, 62)}%`,
   };
-  return view.replace(/\{\{[a-zA-Z.]+\}\}/g, (t) => samples[t] ?? t).replace(/\r?\n/g, ' ');
 }
 
 // Keeps the customizer's own URL in sync so a configured build is shareable.
