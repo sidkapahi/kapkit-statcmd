@@ -336,7 +336,7 @@ body {
   font-size: 16px;
   line-height: 1.4;
   width: 100%;
-  resize: vertical;
+  resize: none;
   outline: none;
   transition: border-color 0.15s ease;
 }
@@ -394,6 +394,9 @@ body {
   flex-direction: column;
   gap: 16px;
   align-items: center;
+  /* Hang at the bottom of the panel: absorb any extra column height above the
+     footer so it sits against the panel's bottom padding, per Figma. */
+  margin-top: auto;
 }
 .brand {
   display: flex;
@@ -449,24 +452,27 @@ body {
 .chat-lines {
   display: flex;
   flex-direction: column;
-  gap: 23px;
+  gap: 19px;
 }
 .chat-line {
   font-family: var(--font-chat);
   font-weight: 700;
-  font-size: clamp(18px, 2.2vw, 31px);
-  letter-spacing: -0.6px;
+  /* Design target: 25.745px at the max stage width (898px); scales down on
+     narrower viewports and is capped so it never overshoots the design. */
+  font-size: clamp(18px, 2vw, 25.75px);
+  letter-spacing: -0.5149px;
   line-height: 1.25;
 }
 .chat-body { min-width: 0; }
-/* Twitch-style chat badges: scale with the line text, sit on the baseline. */
+/* Twitch-style chat badges: square emotes ~1.29x the text size (33.25px at the
+   25.745px design font), centered on the line. */
 .chat-badge {
-  height: 0.8em;
-  width: 0.8em;
-  border-radius: 3px;
+  height: 1.29em;
+  width: 1.29em;
+  border-radius: 4px;
   display: inline-block;
-  vertical-align: -0.12em;
-  margin-right: 0.28em;
+  vertical-align: middle;
+  margin-right: 0.25em;
   flex-shrink: 0;
 }
 .chat-name-green { color: var(--chat-green); }
