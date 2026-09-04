@@ -4,7 +4,7 @@
 
 Build a **CS2 FACEIT + Premier stats command** for your chat bot. Point it at a
 Steam profile, click the datapoints you want, and paste the generated
-`$(urlfetch …)` line into **Nightbot**, **Fossabot**, or **StreamElements**.
+`$(urlfetch …)` line into any chatbot (e.x. Nightbot, Fossabot, Streamelements, etc.)
 
 Live stats come from [Leetify](https://leetify.com) (Premier) and the
 [FACEIT](https://www.faceit.com) Data API.
