@@ -1,37 +1,88 @@
 <div align="center">
 
-<!-- Header image — drop your file at assets/header.png (or update the src below)
-     and it renders here. Delete this block if you'd rather not have one. -->
 <img src="assets/header.png" alt="kapKit — CS2 Stats Command" width="100%" />
 
 # kapKit — CS2 Stats Command
 
-Build a **CS2 FACEIT + Premier stats command** for your chat bot. Point it at a
-Steam profile, click the datapoints you want, and paste the generated
-`$(urlfetch …)` line into any chatbot (e.x. Nightbot, Fossabot, Streamelements, etc.)
-
-Live stats come from [Leetify](https://leetify.com) (Premier) and the
-[FACEIT](https://www.faceit.com) Data API.
+A free customizer that builds a **CS2 FACEIT + Premier stats command** for your <br/>
+chat bot — point it at a Steam profile, pick the datapoints, paste the line in.
 
 [![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![built with TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/sidkapahi/kapkit-statcmd/pulls)
+
+<br/>
+
+<a href="https://statcmd.kapkit.ca/?utm_source=github&utm_medium=README+Button"><img src="assets/use-now-button.svg" alt="Use now" height="54"></a>
+
+<br/>
+
+**[How-To Guide](#how-to-guide)** · **[Report a Bug](https://github.com/sidkapahi/kapkit-statcmd/issues)**
 
 </div>
 
 ---
 
-## How it works
+## Overview
 
-```
-$(urlfetch https://statcmd.kapkit.ca/v3?steamid=<id>&timezone=<tz>&view=<template>)
-```
+A chat command that stays up to date on its own. Point it at a Steam profile,
+pick what to show, and paste one line into your bot. Stats come live from
+[Leetify](https://leetify.com) (Premier) and the [FACEIT](https://www.faceit.com)
+Data API — nothing to run, no account to make here.
 
-The customizer builds that string. Each time a viewer runs your command, the bot
-calls the URL; the **statcmd Worker** looks up the player's live stats,
-substitutes the `{{tokens}}` in `view`, and returns the line the bot posts:
+> [!TIP]
+> **✨ What you can show**
+> - **Premier** — CS Rating and the rating change today
+> - **FACEIT** — ELO, skill level, ELO change today, profile link
+> - **Today** — wins / losses, average kills, K/D, headshot %
+
+**Default command:**
 
 > **FACEIT: Level 5 (1,059) | PREMIER: 15,000**
 
-### Datapoints
+You choose the wording and which datapoints go in it. A datapoint with no data
+(no Premier/FACEIT profile, or an upstream hiccup) renders as `-`.
+
+Works with any bot that supports `$(urlfetch …)` — **Nightbot**, **Fossabot**,
+**StreamElements**, and others.
+
+## How-To Guide
+
+Nothing to install — the hosted customizer builds your command.
+
+### Before you start
+
+- A **Steam profile link** or Steam64 ID (found on [SteamID I/O](https://steamid.io/)).
+  Both Premier and FACEIT stats are looked up from this profile.
+- **For FACEIT stats:** a [FACEIT](https://www.faceit.com) account linked to the
+  same Steam account.
+- **For Premier stats:** a [Leetify](https://leetify.com) account linked to Steam.
+
+### Build your command
+
+1. Open the **[customizer](https://statcmd.kapkit.ca/)**
+2. Paste your **Steam profile link** or Steam64 ID
+3. Pick your **timezone** — "Today" stats reset at your local midnight
+4. Edit the **output** line: type your wording and click the datapoint buttons
+   ([Premier](#datapoints), [FACEIT](#datapoints), [Today](#datapoints)) to drop
+   in tokens like `{{rating}}` or `{{elo}}`
+5. Watch the **live chat preview** update as you go
+6. Click **copy** to grab the generated `$(urlfetch …)` line
+
+### Add it to your bot
+
+Create a new command in your bot and paste the copied line as its **response**:
+
+- **Nightbot** — `!commands add !elo <paste>`, or add it in the dashboard
+- **Fossabot** — Commands → add command → paste as the response
+- **StreamElements** — Chat Commands → add → paste into the response field
+
+Pick any command name you like (`!elo`, `!rank`, `!stats`). That's it — each time
+a viewer runs it, the bot fetches fresh stats and posts the line.
+
+## Datapoints
+
+The output line is free text; these `{{tokens}}` are swapped for live values.
 
 | Group | Token | Value |
 |---|---|---|
@@ -46,87 +97,19 @@ substitutes the `{{tokens}}` in `view`, and returns the line the bot posts:
 | | `{{todays.kd}}` | Kills / deaths across today's matches |
 | | `{{todays.hs}}` | Average headshot % across today's matches |
 
-"Today" is measured since midnight in the timezone you pick. A datapoint with no
-data (no Premier/FACEIT profile, or an upstream hiccup) renders as `-`.
+"Today" is measured since midnight in the timezone you pick.
 
-## Architecture
+## For Developers
 
-- **Static site** (this repo) — a Vite + TypeScript customizer, deployed to
-  GitHub Pages. No backend, no build-time secrets.
-- **One Cloudflare Worker** (`worker/statcmd.js`) — the render engine + Steam
-  vanity resolver. Holds the API keys. See [`worker/README.md`](worker/README.md).
+Local dev, self-hosting, the Cloudflare Worker, build variables, and analytics
+are in **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**; the render engine itself is
+documented in **[worker/README.md](worker/README.md)**.
 
-Both live on **one domain**: the site at `statcmd.kapkit.ca/`, the Worker at
-`statcmd.kapkit.ca/v3` (and `/resolve`) via a Cloudflare route.
-
-## Setup — workers, variables & secrets
-
-### 1. Cloudflare Worker (`statcmd`)
-
-Deploy `worker/statcmd.js` and add its secrets:
-
-| Secret | Required? | Purpose |
-|---|---|---|
-| `FACEIT_API_KEY` | **Yes** for FACEIT/Today tokens | FACEIT Data API server key ([developers.faceit.com](https://developers.faceit.com/)) |
-| `STEAM_API_KEY` | **Yes** to accept `steamcommunity.com/id/<vanity>` links | Steam Web API key ([steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey)) |
-| `LEETIFY_KEY` | Optional | Only raises Leetify rate limits |
-
-```bash
-cd worker
-npx wrangler deploy --config wrangler.statcmd.toml
-npx wrangler secret put FACEIT_API_KEY --config wrangler.statcmd.toml
-npx wrangler secret put STEAM_API_KEY  --config wrangler.statcmd.toml
-npx wrangler secret put LEETIFY_KEY     --config wrangler.statcmd.toml   # optional
-```
-
-Then route it onto the domain (Workers → Triggers → Routes):
-`statcmd.kapkit.ca/v3*` and `statcmd.kapkit.ca/resolve*`. Full details in
-[`worker/README.md`](worker/README.md).
-
-### 2. Site build variables (GitHub Actions repository **variables** — not secrets)
-
-Settings → Secrets and variables → Actions → **Variables**:
-
-| Variable | Value | Notes |
-|---|---|---|
-| `VITE_STATCMD_URL` | `https://statcmd.kapkit.ca/v3` | The Worker's render route. Drives the command + preview. |
-| `VITE_POSTHOG_KEY` | `phc_…` | Optional analytics. Public write key. |
-| `VITE_POSTHOG_HOST` | `https://us.i.posthog.com` | Optional. US or EU region. |
-
-These are inlined into the public bundle at build time, so they are **not**
-secrets — a repository *variable* is the right home.
-
-### 3. DNS / Pages
-
-- DNS: `statcmd.kapkit.ca` → CNAME `sidkapahi.github.io`, **proxied** (orange
-  cloud) so the Worker routes can intercept `/v3` and `/resolve`.
-- GitHub → Settings → Pages → Source = **GitHub Actions**; custom domain
-  `statcmd.kapkit.ca` (the committed `public/CNAME`); enable HTTPS.
-
-## Local development
-
-```bash
-npm install
-npm run dev            # customizer at http://localhost:5173
-```
-
-For live previews against a local Worker, run it in a second terminal and point
-`.env.local` at it:
-
-```bash
-# .env.local
-VITE_STATCMD_URL=http://localhost:8787/v3
-```
-
-```bash
-cd worker
-printf 'FACEIT_API_KEY=…\nSTEAM_API_KEY=…\n' > .dev.vars   # gitignored
-npx wrangler dev --config wrangler.statcmd.toml
-```
-
-Without a Worker URL the customizer still builds valid command strings and shows
-a sample preview.
+> [!NOTE]
+> **A static site that only reads your public CS2 stats.** No login, no accounts,
+> nothing personal to hand over — API keys live on the Worker, never in the
+> browser. [PRs are very welcome](https://github.com/sidkapahi/kapkit-statcmd/pulls)!
 
 ## License
 
-[MIT](LICENSE). Not affiliated with Valve, FACEIT, or Leetify.
+[MIT](LICENSE) © Sid. Not affiliated with Valve, FACEIT, or Leetify.
