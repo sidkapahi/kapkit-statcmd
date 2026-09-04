@@ -13,7 +13,7 @@ chat bot — point it at a Steam profile, pick the datapoints, paste the line in
 
 <br/>
 
-<a href="https://statcmd.kapkit.ca/?utm_source=github&utm_medium=README+Button"><img src="assets/use-now-button.png" alt="Use now" height="54"></a>
+<a href="https://statcmd.kapkit.ca/?utm_source=github&utm_medium=README+Button"><img src="assets/use-now-button.svg" alt="Use now" height="54"></a>
 
 <br/>
 
