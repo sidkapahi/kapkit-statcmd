@@ -36,7 +36,7 @@ Data API — nothing to run, no account to make here.
 > - **FACEIT** — ELO, skill level, ELO change today, profile link
 > - **Today** — wins / losses, average kills, K/D, headshot %
 
-**What viewers see** when they run your command:
+**Default command:**
 
 > **FACEIT: Level 5 (1,059) | PREMIER: 15,000**
 
