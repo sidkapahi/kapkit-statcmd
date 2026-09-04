@@ -28,11 +28,13 @@ jobs:
           # generated command string and the live preview. Not a secret, so a
           # repository variable is the natural home (a secret works too).
           VITE_STATCMD_URL: ${{ vars.VITE_STATCMD_URL || secrets.VITE_STATCMD_URL }}
-          # PostHog analytics — the project key is a public, write-only
+          # Mixpanel analytics — the project token is a public, write-only
           # identifier, so a repository variable is the natural home. Optional;
-          # leave unset to disable analytics entirely.
-          VITE_POSTHOG_KEY: ${{ vars.VITE_POSTHOG_KEY || secrets.VITE_POSTHOG_KEY }}
-          VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST }}
+          # leave unset to disable analytics entirely. Never put the Mixpanel
+          # API Secret here — only the public project token belongs in the build.
+          VITE_MIXPANEL_TOKEN: ${{ vars.VITE_MIXPANEL_TOKEN || secrets.VITE_MIXPANEL_TOKEN }}
+          VITE_MIXPANEL_HOST: ${{ vars.VITE_MIXPANEL_HOST }}
+          VITE_MIXPANEL_SITE: ${{ vars.VITE_MIXPANEL_SITE }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

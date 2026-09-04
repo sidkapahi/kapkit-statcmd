@@ -9,10 +9,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/mixpanel-browser": "^2.60.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.1"
   },
   "dependencies": {
-    "posthog-js": "^1.418.17"
+    "mixpanel-browser": "^2.60.0"
   }
 }
