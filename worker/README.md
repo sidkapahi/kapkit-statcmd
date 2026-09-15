@@ -69,10 +69,13 @@ line.
    GitHub Pages site:
    - DNS: `statcmd.kapkit.ca` → CNAME `sidkapahi.github.io`, **proxied** (orange
      cloud), so Cloudflare can intercept paths.
-   - Worker routes (Workers → your Worker → Triggers → Routes, or the
-     `[[routes]]` block in `wrangler.statcmd.toml`):
-     `statcmd.kapkit.ca/v3*` and `statcmd.kapkit.ca/resolve*`.
-   - Every other path falls through to Pages (the customizer site).
+   - Worker routes: `statcmd.kapkit.ca/v3*` and `statcmd.kapkit.ca/resolve*`.
+     These are declared in the `[[routes]]` block of `wrangler.statcmd.toml`, so
+     the `wrangler deploy` in step 2 attaches them automatically — no dashboard
+     step (Workers → your Worker → Triggers → Routes is the manual equivalent).
+   - Every other path falls through to Pages (the customizer site). Without these
+     routes, `/v3` and `/resolve` fall through too and GitHub Pages answers with
+     a 404, so the bot command's `{{tokens}}` come back unrendered.
 
 5. **Point the customizer at it** via the `VITE_STATCMD_URL` build variable
    (`https://statcmd.kapkit.ca/v3`) — see the repo README. Since the site and

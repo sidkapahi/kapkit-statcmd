@@ -43,8 +43,11 @@ npx wrangler secret put STEAM_API_KEY  --config wrangler.statcmd.toml
 npx wrangler secret put LEETIFY_KEY     --config wrangler.statcmd.toml   # optional
 ```
 
-Then route it onto the domain (Workers → Triggers → Routes):
-`statcmd.kapkit.ca/v3*` and `statcmd.kapkit.ca/resolve*`. Full details in
+The `[[routes]]` block in `wrangler.statcmd.toml` attaches
+`statcmd.kapkit.ca/v3*` and `statcmd.kapkit.ca/resolve*` to the Worker as part of
+that `deploy` — no manual dashboard step. (These routes are what make `/v3` hit
+the Worker; without them requests fall through to GitHub Pages and return its
+404, so `{{tokens}}` come back unrendered.) Full details in
 [`worker/README.md`](../worker/README.md).
 
 ### 2. Site build variables (GitHub Actions repository **variables** — not secrets)
