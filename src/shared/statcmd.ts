@@ -86,16 +86,28 @@ export const ALL_TOKENS: string[] = TOKEN_GROUPS.flatMap((g) => g.tokens.map((t)
 // The default template shown on first load (matches the Figma mockup).
 export const DEFAULT_VIEW = 'FACEIT: Level {{lvl}} ({{elo}}) | PREMIER: {{rating}}';
 
-// Builds the Worker GET URL. `view` is placed LAST and left un-encoded on
-// purpose: bot `urlfetch` implementations pass the URL through verbatim and the
-// Worker reads everything after `&view=` as the raw template, so a template with
-// spaces, `|`, `(`, and `{{…}}` survives intact and reads cleanly in chat — the
+// Builds the Worker GET URL. `view` is placed LAST and otherwise left un-encoded
+// on purpose: bot `urlfetch` implementations pass the URL through verbatim and
+// the Worker reads everything after `&view=` as the raw template, so a template
+// with spaces, `|`, and `{{…}}` survives intact and reads cleanly in chat — the
 // same shape elocmd and the Figma mockup use. `steamid` is digits and `timezone`
 // is an IANA name (letters, digits, `/`, `_`, `+`, `-`), all URL-safe as-is.
+//
+// The one exception is parentheses: the command is pasted inside a bot's
+// `$(urlfetch …)` call, and bots like Fossabot end that call at the FIRST `)`
+// they see — so a template such as `({{elo}})` truncates the URL mid-view,
+// dropping every token after it (the classic "`{{rating}}` shows literally in
+// chat"). Percent-encoding `(`/`)` as `%28`/`%29` keeps them out of the bot's
+// paren-matching; the Worker's `safeDecode` turns them back into real parens in
+// the output. The live preview fetches this same URL, so it stays WYSIWYG.
 export function buildCommandUrl(steamId: string, timezone: string, view: string): string {
   const id = steamId.trim();
   const tz = timezone.trim();
-  const v = view.replace(/\r?\n/g, ' ').trim();
+  const v = view
+    .replace(/\r?\n/g, ' ')
+    .trim()
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29');
   return `${STATCMD_URL}?steamid=${id}&timezone=${tz}&view=${v}`;
 }
 
