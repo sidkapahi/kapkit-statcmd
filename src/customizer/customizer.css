@@ -438,6 +438,38 @@ body {
   gap: 16px;
 }
 
+/* [hidden] must beat the flex containers below (display:flex would otherwise
+   keep them visible). Scoped to the stage so it can't surprise anything else. */
+.stage [hidden] { display: none !important; }
+
+/* Empty / default state: shown until a Steam profile resolves. Same shell as the
+   chat card, with a centered prompt pill (Figma "Desktop - 6"). */
+.empty-state {
+  flex: 1 0 0;
+  min-height: 320px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  background: #18181b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 48px;
+}
+.empty-prompt {
+  background: var(--pill-dark);
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  padding: clamp(20px, 4vw, 32px) clamp(24px, 6vw, 64px);
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.4px;
+  color: var(--text);
+  text-align: center;
+  max-width: 100%;
+}
+
 .chat-card {
   flex: 1 0 0;
   min-height: 320px;
@@ -611,5 +643,5 @@ body {
   .shell { flex-direction: column; }
   .setup { width: 100%; }
   .stage { width: 100%; }
-  .chat-card { min-height: 220px; padding: 24px; }
+  .chat-card, .empty-state { min-height: 220px; padding: 24px; }
 }
