@@ -609,9 +609,12 @@ body {
 /* ---- Cookie banner ------------------------------------------------------- */
 .cookie-banner {
   position: fixed;
-  left: 24px;
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  width: min(360px, calc(100vw - 48px));
+  /* Pin to the setup sidebar's left edge and match its width. Once the shell
+     hits --shell-max and centers on wide screens, the sidebar shifts inward by
+     (100vw - shell-max)/2, so track that instead of the viewport edge. */
+  left: max(calc(var(--app-pad) + 8px), calc((100vw - var(--shell-max)) / 2 + 8px));
+  bottom: calc(var(--app-pad) + 8px + env(safe-area-inset-bottom, 0px));
+  width: calc(var(--setup-width) - 16px);
   z-index: 45; /* under the modals (z-index: 50) */
   display: flex;
   flex-direction: column;
@@ -708,4 +711,12 @@ body {
   .setup { width: 100%; }
   .stage { width: 100%; }
   .chat-card, .empty-state { min-height: 220px; padding: 24px; }
+  /* Sidebar is full-width and stacked here, so track the page padding instead
+     of the 336px column. */
+  .cookie-banner {
+    left: var(--app-pad);
+    right: var(--app-pad);
+    width: auto;
+    max-width: 440px;
+  }
 }
