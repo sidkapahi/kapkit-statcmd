@@ -610,33 +610,97 @@ body {
 .cookie-banner {
   position: fixed;
   left: 24px;
-  bottom: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   width: min(360px, calc(100vw - 48px));
+  z-index: 45; /* under the modals (z-index: 50) */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
   background: var(--card);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  padding: 16px;
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 45;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
-.cookie-banner.open { display: flex; }
-.cookie-banner p { font-size: 12px; line-height: 1.5; color: var(--text-dim); }
-.cookie-banner a { color: var(--accent-pink); cursor: pointer; }
-.cookie-actions { display: flex; gap: 8px; }
-.cookie-actions button {
-  flex: 1;
-  border-radius: var(--radius-field);
-  padding: 8px 12px;
-  font-size: 13px;
+.cookie-banner[hidden] { display: none; }
+.cookie-logo {
+  /* align-self keeps the logo at its natural aspect ratio inside the column
+     flex (default align-items: stretch would distort it). */
+  align-self: flex-start;
+  height: 26px;
+  width: auto;
+  max-width: 100%;
+  display: block;
+}
+.cookie-copy { display: flex; flex-direction: column; gap: 6px; }
+.cookie-title {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--text);
+}
+.cookie-text { font-size: 13px; line-height: 1.5; color: var(--text-dim); }
+/* Underlined link under the copy; opens the Privacy & Cookies modal. */
+.cookie-privacy {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
   cursor: pointer;
   font-family: var(--font-ui);
-  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
 }
-.cookie-accept { background: var(--chat-green); color: #06210f; border-color: var(--chat-green); font-weight: 700; }
+.cookie-privacy:hover { color: var(--text); }
+
+/* Consent buttons, shared by the banner and the Privacy & Cookies modal. */
+.cookie-actions { display: flex; gap: 8px; }
+.cookie-btn {
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: var(--radius-field);
+  border: 1px solid var(--line);
+  transition: filter 0.15s ease, background 0.15s ease;
+}
 .cookie-reject { background: var(--pill-dark); color: var(--text); }
+.cookie-reject:hover { background: #1a1a1a; color: var(--text); }
+.cookie-accept {
+  background: var(--chat-green);
+  border-color: var(--chat-green);
+  color: #06210f;
+  font-weight: 700;
+}
+.cookie-accept:hover { filter: brightness(1.08); }
+
+/* Banner-specific: the two choices share the bottom row as equal, uppercase
+   halves. Scoped to .cookie-banner so the modal keeps its own layout. */
+.cookie-banner .cookie-actions { gap: 10px; margin-top: 2px; }
+.cookie-banner .cookie-btn {
+  flex: 1;
+  padding: 10px 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Re-manageable consent inside the Privacy & Cookies modal: a status line and
+   the current choice marked with a ringed .is-active look. */
+.modal-consent { align-items: center; flex-wrap: wrap; margin: 12px 0 18px; }
+.consent-state { flex: 1; min-width: 140px; font-size: 12px; color: var(--text-dim); }
+.cookie-btn.is-active {
+  position: relative;
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--chat-green);
+}
+.cookie-reject.is-active { border-color: var(--chat-green); color: var(--text); }
+.cookie-accept.is-active { border-color: var(--chat-green); }
+.cookie-btn.is-active::after { content: "✓"; margin-left: 6px; font-size: 12px; }
 
 /* ---- Responsive ---------------------------------------------------------- */
 @media (max-width: 900px) {

@@ -18,6 +18,7 @@ import {
   trackEvent,
   analyticsEnabled,
   consentDecided,
+  consentStatus,
   grantConsent,
   revokeConsent,
 } from '../shared/analytics';
@@ -612,8 +613,15 @@ function renderModals(): string {
       <p>The preview and the generated command call the kapKit statcmd service (<a href="https://statcmd.kapkit.ca/" target="_blank" rel="noopener">statcmd.kapkit.ca</a>), which looks up public CS2 stats for the Steam ID you provide from <a href="https://leetify.com" target="_blank" rel="noopener">Leetify</a> (Premier) and the <a href="https://www.faceit.com" target="_blank" rel="noopener">FACEIT</a> Data API. Only your Steam ID, timezone, and template are sent — no personal account access is needed.</p>
       <h3>Analytics</h3>
       <p>If analytics is enabled on this deployment, anonymous usage data is collected via <a href="https://posthog.com" target="_blank" rel="noopener">PostHog</a>, and only after you accept the cookie banner. This uses cookies and browser storage.</p>
-      <p>We record how the tool is used so we can improve it: page views, and interactions such as button clicks, copying the command, choosing a timezone, and following the GitHub, Ko-fi, or Twitch links. Both named events and PostHog's automatic click capture are used, so on-page interactions are recorded generically as well. IP-based geolocation is disabled, session recording is off, and we never create a personal profile for you.</p>
+      <p>We record how the tool is used so we can improve it: page views, and interactions such as button clicks, copying the command, choosing a timezone, and following the GitHub, Ko-fi, or Twitch links. Both named events and PostHog's automatic click capture are used, so on-page interactions are recorded generically as well. PostHog also derives an <strong>approximate location</strong> (country / region) from your IP address, so we can see roughly where the tool is used — this is aggregate only. Session recording is off and we never create a personal profile for you.</p>
       <p><strong>Your Steam ID is never sent to analytics</strong> — neither the profile you enter nor the generated command leaves your browser for analytics purposes. You can decline the banner and the tool works exactly the same.</p>
+      <h3>Cookies &amp; your choice</h3>
+      <p>Analytics uses first-party cookies to recognise return visits. You choose whether to allow them — rejecting means no analytics cookies are set. You can change your mind any time right here:</p>
+      <div class="cookie-actions modal-consent">
+        <span class="consent-state" id="consent-state"></span>
+        <button type="button" class="cookie-btn cookie-reject" id="modal-reject">Reject</button>
+        <button type="button" class="cookie-btn cookie-accept" id="modal-accept">Accept</button>
+      </div>
       <p>Questions? Email <a class="modal-mail" href="mailto:hey@sidkapahi.com">hey@sidkapahi.com</a>.</p>
       <button type="button" class="modal-close">Close</button>
     </div>
@@ -642,33 +650,86 @@ function renderModals(): string {
 
 function renderCookieBanner(): string {
   return `
-  <div class="cookie-banner" id="cookie-banner">
-    <p>We use privacy-friendly, anonymous analytics to see which features get used. No Steam ID or personal data is collected. See the <a id="cookie-privacy">Privacy Policy</a>.</p>
+  <div class="cookie-banner" id="cookie-banner" role="region" aria-label="Cookie consent" hidden>
+    <img class="cookie-logo" src="${kapkitLogo}" alt="kapKit" />
+    <div class="cookie-copy">
+      <p class="cookie-title">Delicious Cookies</p>
+      <p class="cookie-text">We use privacy-friendly analytics to help improve CS2 Stats Command and its features. No Steam ID or personal data is collected.</p>
+    </div>
+    <button type="button" class="cookie-privacy" id="cookie-privacy">Privacy Policy</button>
     <div class="cookie-actions">
-      <button type="button" class="cookie-reject" id="cookie-reject">Decline</button>
-      <button type="button" class="cookie-accept" id="cookie-accept">Accept</button>
+      <button type="button" class="cookie-btn cookie-reject" id="cookie-reject">No thanks</button>
+      <button type="button" class="cookie-btn cookie-accept" id="cookie-accept">Allow</button>
     </div>
   </div>`;
 }
 
 function mountCookieBanner(): void {
   const banner = document.getElementById('cookie-banner');
-  if (!banner) return;
-  if (!analyticsEnabled() || consentDecided()) return;
-  banner.classList.add('open');
-  document.getElementById('cookie-accept')?.addEventListener('click', () => {
-    grantConsent();
-    banner.classList.remove('open');
-    // Fires only now that consent is granted (capturing is opted in above).
-    trackEvent('consent_granted');
-  });
-  document.getElementById('cookie-reject')?.addEventListener('click', () => {
-    // No event here — declining opts out, so nothing is captured.
-    revokeConsent();
-    banner.classList.remove('open');
-  });
-  document.getElementById('cookie-privacy')?.addEventListener('click', () => {
+  const stateEl = document.getElementById('consent-state');
+  const modalAccept = document.getElementById('modal-accept');
+  const modalReject = document.getElementById('modal-reject');
+  const consentRow = document.querySelector<HTMLElement>('.modal-consent');
+
+  // No analytics configured on this deployment → nothing to consent to: keep the
+  // banner hidden and drop the (dead) consent controls from the privacy modal.
+  if (!analyticsEnabled()) {
+    if (consentRow) consentRow.style.display = 'none';
+    return;
+  }
+
+  // Reflect the saved choice inside the privacy modal: a status line plus an
+  // is-active marker on whichever button matches the current choice.
+  const refreshState = (): void => {
+    const status = consentStatus();
+    if (stateEl) {
+      stateEl.textContent =
+        status === 'granted'
+          ? "You've allowed analytics cookies."
+          : status === 'denied'
+            ? "You've rejected analytics cookies."
+            : 'No choice made yet.';
+    }
+    const accepted = status === 'granted';
+    const rejected = status === 'denied';
+    modalAccept?.classList.toggle('is-active', accepted);
+    modalReject?.classList.toggle('is-active', rejected);
+    modalAccept?.setAttribute('aria-pressed', String(accepted));
+    modalReject?.setAttribute('aria-pressed', String(rejected));
+  };
+
+  // Apply a choice: opt in/out, hide the banner, refresh the modal state. The
+  // choice is only ever made by an explicit Accept/Reject click, so the banner
+  // stays until the visitor decides.
+  const decide = (accepted: boolean): void => {
+    if (accepted) {
+      grantConsent();
+      // Fires only now that consent is granted (capturing is opted in above).
+      trackEvent('consent_granted');
+    } else {
+      // No event here — declining opts out, so nothing is captured.
+      revokeConsent();
+    }
+    if (banner) banner.hidden = true;
+    refreshState();
+  };
+
+  const openPrivacy = (): void => {
+    refreshState();
     document.getElementById('modal-privacy')?.classList.add('open');
     trackEvent('privacy_opened');
-  });
+  };
+
+  document.getElementById('cookie-accept')?.addEventListener('click', () => decide(true));
+  document.getElementById('cookie-reject')?.addEventListener('click', () => decide(false));
+  document.getElementById('cookie-privacy')?.addEventListener('click', openPrivacy);
+  modalAccept?.addEventListener('click', () => decide(true));
+  modalReject?.addEventListener('click', () => decide(false));
+  // The footer "Privacy Policy" link (wired via wireModal) also refreshes the
+  // consent state so the modal shows the current choice when opened there.
+  document.getElementById('open-privacy')?.addEventListener('click', refreshState);
+
+  refreshState();
+  // Show the banner until an explicit choice is made (nothing on return visits).
+  if (banner && !consentDecided()) banner.hidden = false;
 }
