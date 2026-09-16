@@ -1,41 +1,52 @@
-import mixpanel from "mixpanel-browser";
-import type { Config } from "mixpanel-browser";
+import posthog from "posthog-js";
+import type { PostHogConfig } from "posthog-js";
 
-// Customizer analytics (Mixpanel, cookie-based). The overlay does NOT use this
+// Customizer analytics (PostHog, cookie-based). The overlay does NOT use this
 // module — it uses the lightweight, cookieless analyticsOverlay.ts instead, so
-// mixpanel-browser is never bundled into the OBS overlay.
+// posthog-js is never bundled into the OBS overlay.
 
 type Props = Record<string, string | number | boolean>;
 
-// Mixpanel project token, injected by Vite at build time. Empty token = no
-// analytics at all (forks / local dev without their own project). The token is
-// a PUBLIC, write-only identifier — safe to inline into the bundle. Never put
-// your Mixpanel *API Secret* here; that is a server-side credential.
-//
-// MULTIPLE SITES: Mixpanel's free plan allows unlimited projects, so the clean
-// setup is one project per site — give each deployment its own VITE_MIXPANEL_TOKEN.
-// If instead you pool several sites into ONE project, set VITE_MIXPANEL_SITE per
-// deployment: it's registered as a super property on every event so you can
-// break your reports down by site.
-const MIXPANEL_TOKEN: string = import.meta.env.VITE_MIXPANEL_TOKEN ?? "";
-// Region host. Use || (not ??) so an *empty* host from CI (`${{ vars.… }}`
-// expands to "" when unset, not undefined) falls back to the US default instead
-// of sticking as an empty string and breaking ingestion. Set to
-// https://api-eu.mixpanel.com for EU residency, or a reverse-proxy subdomain of
-// your own domain to dodge ad blockers.
-const MIXPANEL_HOST: string =
-  import.meta.env.VITE_MIXPANEL_HOST || "https://api.mixpanel.com";
-// Optional per-site label (only useful when several sites share one project).
-const MIXPANEL_SITE: string = import.meta.env.VITE_MIXPANEL_SITE ?? "";
-const ENABLED = !!MIXPANEL_TOKEN;
+// Every custom event name is prefixed with this so that when several sites share
+// ONE PostHog project you can tell them apart at a glance and filter cleanly
+// (e.g. `statcmd_command_copied`). The same value is also registered as a `site`
+// super property (see below) so that PostHog's *autocaptured* events — whose
+// names are fixed by PostHog (`$autocapture`, `$pageview`, …) and cannot be
+// renamed — are still attributable to this site. Override per deployment with
+// VITE_POSTHOG_EVENT_PREFIX; defaults to "statcmd".
+const EVENT_PREFIX: string =
+  import.meta.env.VITE_POSTHOG_EVENT_PREFIX || "statcmd";
 
-// Mixpanel has no built-in three-state consent, so we record the visitor's
-// explicit choice ourselves. "pending" until they accept or decline via the
-// banner; the banner then stops showing on return visits. Kept in localStorage
-// so it survives Mixpanel's own opt-out cookie being cleared.
+// PostHog project API key, injected by Vite at build time. Empty key = no
+// analytics at all (forks / local dev without their own project). This key is a
+// PUBLIC, write-only identifier (the `phc_…` "Project API Key") — safe to inline
+// into the bundle. Never put your PostHog Personal API key here; that is a
+// server-side credential.
+const POSTHOG_KEY: string = import.meta.env.VITE_POSTHOG_KEY ?? "";
+// API host. Use || (not ??) so an *empty* host from CI (`${{ vars.… }}` expands
+// to "" when unset, not undefined) falls back to the US default instead of
+// sticking as an empty string and breaking ingestion. Use
+// https://eu.i.posthog.com for EU residency, or a reverse-proxy subdomain of
+// your own domain to dodge ad blockers.
+const POSTHOG_HOST: string =
+  import.meta.env.VITE_POSTHOG_HOST || "https://us.i.posthog.com";
+const ENABLED = !!POSTHOG_KEY;
+
+// PostHog can gate capturing on an explicit opt-in, but it has no three-state
+// "not decided yet", so we record the visitor's choice ourselves. "pending"
+// until they accept or decline via the banner; the banner then stops showing on
+// return visits. Kept in localStorage so it survives PostHog's own opt-out
+// cookie being cleared.
 const CONSENT_KEY = "kapkit_analytics_consent";
 
 let started = false;
+
+// Prefix a custom event name once, guarding against double-prefixing.
+function eventName(event: string): string {
+  return event.startsWith(`${EVENT_PREFIX}_`)
+    ? event
+    : `${EVENT_PREFIX}_${event}`;
+}
 
 function readConsent(): "granted" | "denied" | "pending" {
   try {
@@ -60,31 +71,42 @@ export function initAnalytics() {
   if (!ENABLED || started || typeof window === "undefined") return;
   started = true;
 
-  const config: Partial<Config> = {
-    api_host: MIXPANEL_HOST,
-    // We send explicit, named events only — no autocapture, no auto pageviews.
-    autocapture: false,
-    track_pageview: false,
-    // Gate all capturing on banner consent; opt_in_tracking() flips this on.
-    opt_out_tracking_by_default: true,
-    // Anonymise: don't store the visitor's IP with events.
-    ip: false,
-    persistence: "localStorage",
+  const config: Partial<PostHogConfig> = {
+    api_host: POSTHOG_HOST,
+    // Capture "every interaction": autocapture records clicks/inputs generically
+    // and pageviews/leaves are captured too. Named events (see trackEvent) add
+    // the meaningful, prefixed events on top.
+    autocapture: true,
+    capture_pageview: true,
+    capture_pageleave: true,
+    // Gate ALL capturing on banner consent; opt_in_capturing() flips this on.
+    opt_out_capturing_by_default: true,
+    // Keep it anonymous: never create identified person profiles (we never call
+    // identify()), and don't record the visitor's screen.
+    person_profiles: "identified_only",
+    disable_session_recording: true,
+    persistence: "localStorage+cookie",
+    loaded: (ph) => {
+      ph.register({
+        // Tag every event — including PostHog's own autocaptured ones — with
+        // the site, so a shared project can be broken down per site.
+        site: EVENT_PREFIX,
+        // Don't run IP-based geolocation on our events (keeps it anonymous).
+        $geoip_disable: true,
+      });
+    },
   };
-  mixpanel.init(MIXPANEL_TOKEN, config);
+  posthog.init(POSTHOG_KEY, config);
 
-  // Re-apply a returning visitor's stored choice: mixpanel restores its own
+  // Re-apply a returning visitor's stored choice: PostHog restores its own
   // opt-in/out cookie, but this keeps the two in sync if the cookie was cleared.
-  if (readConsent() === "granted") mixpanel.opt_in_tracking();
-
-  // Tag every event with the site when pooling multiple sites into one project.
-  if (MIXPANEL_SITE) mixpanel.register({ site: MIXPANEL_SITE });
+  if (readConsent() === "granted") posthog.opt_in_capturing();
 }
 
 export function trackEvent(event: string, props?: Props) {
   if (!ENABLED || !started) return;
   try {
-    mixpanel.track(event, props);
+    posthog.capture(eventName(event), props);
   } catch {
     // analytics must never break the app
   }
@@ -114,7 +136,7 @@ export function grantConsent() {
   writeConsent("granted");
   if (!ENABLED || !started) return;
   try {
-    mixpanel.opt_in_tracking();
+    posthog.opt_in_capturing();
   } catch {
     /* ignore */
   }
@@ -124,7 +146,7 @@ export function revokeConsent() {
   writeConsent("denied");
   if (!ENABLED || !started) return;
   try {
-    mixpanel.opt_out_tracking();
+    posthog.opt_out_capturing();
   } catch {
     /* ignore */
   }

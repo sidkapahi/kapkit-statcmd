@@ -54,9 +54,9 @@ Settings → Secrets and variables → Actions → **Variables**:
 | Variable | Value | Notes |
 |---|---|---|
 | `VITE_STATCMD_URL` | `https://statcmd.kapkit.ca/v3` | The Worker's render route. Drives the command + preview. |
-| `VITE_MIXPANEL_TOKEN` | project token | Optional analytics. Public, write-only project token — **not** the API Secret. One project per site (Mixpanel's free plan allows unlimited projects). |
-| `VITE_MIXPANEL_HOST` | `https://api.mixpanel.com` | Optional. US (default) or `https://api-eu.mixpanel.com` (EU). |
-| `VITE_MIXPANEL_SITE` | e.g. `statcmd` | Optional. Only when several sites share one project — attached to every event as a `site` super property for per-site breakdowns. |
+| `VITE_POSTHOG_KEY` | `phc_…` Project API Key | Optional analytics. Public, write-only Project API Key — **not** a Personal API key. |
+| `VITE_POSTHOG_HOST` | `https://us.i.posthog.com` | Optional. US (default) or `https://eu.i.posthog.com` (EU). |
+| `VITE_POSTHOG_EVENT_PREFIX` | e.g. `statcmd` | Optional (defaults to `statcmd`). Prefixes every custom event and is registered as a `site` super property, so several sites can share one PostHog project and still be told apart. |
 
 These are inlined into the public bundle at build time, so they are **not**
 secrets — a repository *variable* is the right home.
