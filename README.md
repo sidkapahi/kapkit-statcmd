@@ -2,7 +2,7 @@
 
 <img src="assets/header.png" alt="kapKit — CS2 Stats Command" width="100%" />
 
-# kapKit — CS2 Stats Command
+# CS2 Stats Command
 
 A free customizer that builds a **CS2 FACEIT + Premier stats command** for your <br/>
 chat bot — point it at a Steam profile, pick the datapoints, paste the line in.
