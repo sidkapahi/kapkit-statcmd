@@ -18,6 +18,7 @@ import {
   trackEvent,
   analyticsEnabled,
   consentDecided,
+  consentStatus,
   grantConsent,
   revokeConsent,
 } from '../shared/analytics';
@@ -102,14 +103,14 @@ function renderSidebar(): string {
         <p class="setup-sub">Customize and plug into your own bot for an elo or stats command. Data provided by <a href="https://leetify.com/" target="_blank" rel="noopener">Leetify</a></p>
       </div>
       <div class="link-row">
-        <a class="gh-chip" href="${REPO_URL}" target="_blank" rel="noopener">
+        <a class="gh-chip" id="link-github" href="${REPO_URL}" target="_blank" rel="noopener">
           <img src="${ghIcon}" alt="GitHub" />
           <span>kapkit-statcmd</span>
         </a>
-        <a class="icon-btn kofi" href="${KOFI_URL}" target="_blank" rel="noopener" aria-label="Support on Ko-fi">
+        <a class="icon-btn kofi" id="link-kofi" href="${KOFI_URL}" target="_blank" rel="noopener" aria-label="Support on Ko-fi">
           <img src="${kofiIcon}" alt="Ko-fi" />
         </a>
-        <a class="icon-btn twitch" href="${TWITCH_URL}" target="_blank" rel="noopener" aria-label="Twitch">
+        <a class="icon-btn twitch" id="link-twitch" href="${TWITCH_URL}" target="_blank" rel="noopener" aria-label="Twitch">
           <img src="${twitchIcon}" alt="Twitch" />
         </a>
       </div>
@@ -239,11 +240,14 @@ async function resolveSteam(): Promise<void> {
     resolvedSteamId = parsed.steamId;
     setSteamMsg('', 'ok');
     refresh();
+    // Outcome only — the Steam ID itself is never sent to analytics.
+    trackEvent('steam_resolved', { status: 'ok', kind: 'id' });
     return;
   }
   if (parsed.kind === 'invalid') {
     setSteamMsg("That doesn't look like a Steam profile link or Steam64 ID.", 'error');
     refresh();
+    trackEvent('steam_resolved', { status: 'invalid', kind: 'invalid' });
     return;
   }
 
@@ -256,15 +260,18 @@ async function resolveSteam(): Promise<void> {
     if (res.ok && body.steamId && /^\d{17}$/.test(body.steamId)) {
       resolvedSteamId = body.steamId;
       setSteamMsg('', 'ok');
+      trackEvent('steam_resolved', { status: 'ok', kind: 'vanity' });
     } else {
       setSteamMsg(
         body.error || "Couldn't resolve that profile — paste your Steam64 ID or a /profiles/… link.",
         'error',
       );
+      trackEvent('steam_resolved', { status: 'error', kind: 'vanity' });
     }
   } catch {
     if (token !== resolveToken) return;
     setSteamMsg('Could not reach the resolver. Paste your Steam64 ID instead.', 'error');
+    trackEvent('steam_resolved', { status: 'error', kind: 'vanity' });
   }
   refresh();
 }
@@ -314,8 +321,29 @@ copyBtn.addEventListener('click', () => {
     copyBtn.classList.remove('copied');
     copyBtn.innerHTML = copySvg;
   }, 1600);
-  trackEvent('command_copied', { hasSteamId: Boolean(resolvedSteamId) });
+  // The copy is the key conversion, tracked together with the timezone the
+  // command was built for (the "link copied + timezone" combination).
+  trackEvent('command_copied', {
+    timezone: state.timezone,
+    hasSteamId: Boolean(resolvedSteamId),
+    commandLength: cmd.length,
+  });
 });
+
+// External link buttons (GitHub, Ko-fi, Twitch). These open in a new tab, so the
+// click fires before navigation and the event still sends.
+const EXTERNAL_LINKS: Array<[string, string]> = [
+  ['link-github', 'github'],
+  ['link-kofi', 'kofi'],
+  ['link-twitch', 'twitch'],
+];
+for (const [id, destination] of EXTERNAL_LINKS) {
+  document
+    .getElementById(id)
+    ?.addEventListener('click', () =>
+      trackEvent('external_link_click', { destination }),
+    );
+}
 
 // ---- Timezone combobox ----------------------------------------------------
 
@@ -392,6 +420,7 @@ function selectTz(tz: string): void {
   openTz(false);
   syncUrl();
   refresh();
+  trackEvent('timezone_selected', { timezone: tz });
 }
 
 // Close the combo when clicking outside.
@@ -401,14 +430,17 @@ document.addEventListener('click', (e) => {
 
 // ---- Modals & cookie banner ----------------------------------------------
 
-wireModal('open-privacy', 'modal-privacy');
-wireModal('open-terms', 'modal-terms');
+wireModal('open-privacy', 'modal-privacy', 'privacy_opened');
+wireModal('open-terms', 'modal-terms', 'terms_opened');
 
-function wireModal(openId: string, modalId: string): void {
+function wireModal(openId: string, modalId: string, event: string): void {
   const opener = document.getElementById(openId);
   const backdrop = document.getElementById(modalId);
   if (!opener || !backdrop) return;
-  opener.addEventListener('click', () => backdrop.classList.add('open'));
+  opener.addEventListener('click', () => {
+    backdrop.classList.add('open');
+    trackEvent(event);
+  });
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop) backdrop.classList.remove('open');
   });
@@ -580,7 +612,16 @@ function renderModals(): string {
       <h3>Live preview &amp; the command</h3>
       <p>The preview and the generated command call the kapKit statcmd service (<a href="https://statcmd.kapkit.ca/" target="_blank" rel="noopener">statcmd.kapkit.ca</a>), which looks up public CS2 stats for the Steam ID you provide from <a href="https://leetify.com" target="_blank" rel="noopener">Leetify</a> (Premier) and the <a href="https://www.faceit.com" target="_blank" rel="noopener">FACEIT</a> Data API. Only your Steam ID, timezone, and template are sent — no personal account access is needed.</p>
       <h3>Analytics</h3>
-      <p>If analytics is enabled on this deployment, anonymous, aggregate usage counts are collected via <a href="https://mixpanel.com" target="_blank" rel="noopener">Mixpanel</a>, and only after you accept the cookie banner. No Steam ID or personal data is sent. You can decline and the tool works exactly the same.</p>
+      <p>If analytics is enabled on this deployment, anonymous usage data is collected via <a href="https://posthog.com" target="_blank" rel="noopener">PostHog</a>, and only after you accept the cookie banner. This uses cookies and browser storage.</p>
+      <p>We record how the tool is used so we can improve it: page views, and interactions such as button clicks, copying the command, choosing a timezone, and following the GitHub, Ko-fi, or Twitch links. Both named events and PostHog's automatic click capture are used, so on-page interactions are recorded generically as well. PostHog also derives an <strong>approximate location</strong> (country / region) from your IP address, so we can see roughly where the tool is used — this is aggregate only. Session recording is off and we never create a personal profile for you.</p>
+      <p><strong>Your Steam ID is never sent to analytics</strong> — neither the profile you enter nor the generated command leaves your browser for analytics purposes. You can decline the banner and the tool works exactly the same.</p>
+      <h3>Cookies &amp; your choice</h3>
+      <p>Analytics uses first-party cookies to recognise return visits. You choose whether to allow them — rejecting means no analytics cookies are set. You can change your mind any time right here:</p>
+      <div class="cookie-actions modal-consent">
+        <span class="consent-state" id="consent-state"></span>
+        <button type="button" class="cookie-btn cookie-reject" id="modal-reject">Reject</button>
+        <button type="button" class="cookie-btn cookie-accept" id="modal-accept">Accept</button>
+      </div>
       <p>Questions? Email <a class="modal-mail" href="mailto:hey@sidkapahi.com">hey@sidkapahi.com</a>.</p>
       <button type="button" class="modal-close">Close</button>
     </div>
@@ -597,6 +638,8 @@ function renderModals(): string {
         <li><a href="https://www.faceit.com/en/terms" target="_blank" rel="noopener">FACEIT Terms of Service</a></li>
         <li><a href="https://store.steampowered.com/subscriber_agreement/" target="_blank" rel="noopener">Steam Subscriber Agreement</a></li>
       </ul>
+      <h3>Analytics</h3>
+      <p>Where enabled, this site uses <a href="https://posthog.com" target="_blank" rel="noopener">PostHog</a> to collect anonymous usage analytics, and only after you accept the cookie banner. That processing is subject to PostHog's own <a href="https://posthog.com/terms" target="_blank" rel="noopener">terms</a> and <a href="https://posthog.com/privacy" target="_blank" rel="noopener">privacy policy</a>. See the Privacy &amp; Cookies notice for exactly what is collected; declining changes nothing about how the tool works.</p>
       <h3>No warranty</h3>
       <p>The tool is provided “as is”, without warranty of any kind. Stats depend on third-party APIs and may be unavailable or inaccurate at times. Because it is free, you assume responsibility for how you use it.</p>
       <p>Questions? Email <a class="modal-mail" href="mailto:hey@sidkapahi.com">hey@sidkapahi.com</a>.</p>
@@ -607,29 +650,86 @@ function renderModals(): string {
 
 function renderCookieBanner(): string {
   return `
-  <div class="cookie-banner" id="cookie-banner">
-    <p>We use privacy-friendly, anonymous analytics to see which features get used. No Steam ID or personal data is collected. See the <a id="cookie-privacy">Privacy Policy</a>.</p>
+  <div class="cookie-banner" id="cookie-banner" role="region" aria-label="Cookie consent" hidden>
+    <img class="cookie-logo" src="${kapkitLogo}" alt="kapKit" />
+    <div class="cookie-copy">
+      <p class="cookie-title">Delicious Cookies</p>
+      <p class="cookie-text">We use privacy-friendly analytics to help improve CS2 Stats Command and its features. No Steam ID or personal data is collected.</p>
+    </div>
+    <button type="button" class="cookie-privacy" id="cookie-privacy">Privacy Policy</button>
     <div class="cookie-actions">
-      <button type="button" class="cookie-reject" id="cookie-reject">Decline</button>
-      <button type="button" class="cookie-accept" id="cookie-accept">Accept</button>
+      <button type="button" class="cookie-btn cookie-reject" id="cookie-reject">No thanks</button>
+      <button type="button" class="cookie-btn cookie-accept" id="cookie-accept">Allow</button>
     </div>
   </div>`;
 }
 
 function mountCookieBanner(): void {
   const banner = document.getElementById('cookie-banner');
-  if (!banner) return;
-  if (!analyticsEnabled() || consentDecided()) return;
-  banner.classList.add('open');
-  document.getElementById('cookie-accept')?.addEventListener('click', () => {
-    grantConsent();
-    banner.classList.remove('open');
-  });
-  document.getElementById('cookie-reject')?.addEventListener('click', () => {
-    revokeConsent();
-    banner.classList.remove('open');
-  });
-  document.getElementById('cookie-privacy')?.addEventListener('click', () => {
+  const stateEl = document.getElementById('consent-state');
+  const modalAccept = document.getElementById('modal-accept');
+  const modalReject = document.getElementById('modal-reject');
+  const consentRow = document.querySelector<HTMLElement>('.modal-consent');
+
+  // No analytics configured on this deployment → nothing to consent to: keep the
+  // banner hidden and drop the (dead) consent controls from the privacy modal.
+  if (!analyticsEnabled()) {
+    if (consentRow) consentRow.style.display = 'none';
+    return;
+  }
+
+  // Reflect the saved choice inside the privacy modal: a status line plus an
+  // is-active marker on whichever button matches the current choice.
+  const refreshState = (): void => {
+    const status = consentStatus();
+    if (stateEl) {
+      stateEl.textContent =
+        status === 'granted'
+          ? "You've allowed analytics cookies."
+          : status === 'denied'
+            ? "You've rejected analytics cookies."
+            : 'No choice made yet.';
+    }
+    const accepted = status === 'granted';
+    const rejected = status === 'denied';
+    modalAccept?.classList.toggle('is-active', accepted);
+    modalReject?.classList.toggle('is-active', rejected);
+    modalAccept?.setAttribute('aria-pressed', String(accepted));
+    modalReject?.setAttribute('aria-pressed', String(rejected));
+  };
+
+  // Apply a choice: opt in/out, hide the banner, refresh the modal state. The
+  // choice is only ever made by an explicit Accept/Reject click, so the banner
+  // stays until the visitor decides.
+  const decide = (accepted: boolean): void => {
+    if (accepted) {
+      grantConsent();
+      // Fires only now that consent is granted (capturing is opted in above).
+      trackEvent('consent_granted');
+    } else {
+      // No event here — declining opts out, so nothing is captured.
+      revokeConsent();
+    }
+    if (banner) banner.hidden = true;
+    refreshState();
+  };
+
+  const openPrivacy = (): void => {
+    refreshState();
     document.getElementById('modal-privacy')?.classList.add('open');
-  });
+    trackEvent('privacy_opened');
+  };
+
+  document.getElementById('cookie-accept')?.addEventListener('click', () => decide(true));
+  document.getElementById('cookie-reject')?.addEventListener('click', () => decide(false));
+  document.getElementById('cookie-privacy')?.addEventListener('click', openPrivacy);
+  modalAccept?.addEventListener('click', () => decide(true));
+  modalReject?.addEventListener('click', () => decide(false));
+  // The footer "Privacy Policy" link (wired via wireModal) also refreshes the
+  // consent state so the modal shows the current choice when opened there.
+  document.getElementById('open-privacy')?.addEventListener('click', refreshState);
+
+  refreshState();
+  // Show the banner until an explicit choice is made (nothing on return visits).
+  if (banner && !consentDecided()) banner.hidden = false;
 }
