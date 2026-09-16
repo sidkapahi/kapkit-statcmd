@@ -88,6 +88,8 @@ const outputArea = byId<HTMLTextAreaElement>('output-area');
 const commandText = byId<HTMLDivElement>('command-text');
 const copyBtn = byId<HTMLButtonElement>('copy-btn');
 const chatOutput = byId<HTMLSpanElement>('chat-output');
+const emptyState = byId<HTMLDivElement>('empty-state');
+const chatCard = byId<HTMLDivElement>('chat-card');
 
 // ---- Sidebar markup -------------------------------------------------------
 
@@ -184,7 +186,11 @@ function renderGroup(group: (typeof TOKEN_GROUPS)[number]): string {
 function renderStage(): string {
   return `
   <section class="stage">
-    <div class="chat-card">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-prompt">ENTER YOUR STEAM NAME OR PROFILE LINK</div>
+    </div>
+
+    <div class="chat-card" id="chat-card" hidden>
       <div class="chat-lines">
         <div class="chat-line">
           <div class="chat-body"><img class="chat-badge" src="${SUB_BADGE}" alt="Subscriber" /><span class="chat-name-green">Kapowhi</span><span class="chat-sep">: </span><span class="chat-text">!elo</span></div>
@@ -424,7 +430,17 @@ function steamIdForCommand(): string {
 // Refreshes the command string + live chat preview from current state.
 function refresh(): void {
   commandText.textContent = currentCommand();
+  setStageMode();
   updatePreview();
+}
+
+// The stage's default state: until a Steam profile resolves there's nothing real
+// to preview, so show the "enter your Steam name" prompt (the Figma default) and
+// only swap in the chat card once we have an id to render.
+function setStageMode(): void {
+  const hasProfile = Boolean(resolvedSteamId);
+  emptyState.hidden = hasProfile;
+  chatCard.hidden = !hasProfile;
 }
 
 let previewDebounce: number | undefined;
